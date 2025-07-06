@@ -884,6 +884,9 @@ export class LeanCloudService {
             realUserId: userId // 真实的_User表ID
           })
         })
+
+        console.log(`找到 ${students.length} 个Student记录，对应 ${userIds.length} 个用户ID`)
+        console.log('未找到Student记录的用户ID:', userIds.filter(id => !userMap.has(id)))
       } catch (error) {
         console.warn('无法查询Student表:', error)
       }
@@ -893,10 +896,19 @@ export class LeanCloudService {
         const userInfo = userMap.get(userId)
         const course = progress.get('course')
 
+        // 改进用户名显示逻辑
+        let userName = '未知用户'
+        if (userInfo) {
+          userName = userInfo.nickname || userInfo.username || '未知用户'
+        } else {
+          // 如果找不到Student记录，尝试使用userId的后6位作为显示
+          userName = `学员${userId ? userId.slice(-6) : 'UNKNOWN'}`
+        }
+
         return {
           id: progress.id,
           userId: userId, // 直接使用_User表的ID
-          userName: userInfo ? (userInfo.nickname || userInfo.username) : `用户${userId.slice(-6)}`,
+          userName: userName,
           courseId: progress.get('courseId'),
           courseName: course ? course.get('name') : progress.get('courseName') || '',
           courseCategory: course ? course.get('category') : progress.get('courseCategory') || '',
