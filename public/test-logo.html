@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .logo-test {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .logo-test h3 {
+            margin-top: 0;
+            color: #fff;
+        }
+        .logo-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .logo-small {
+            width: 32px;
+            height: 32px;
+        }
+        .logo-medium {
+            width: 48px;
+            height: 48px;
+        }
+        .logo-large {
+            width: 80px;
+            height: 80px;
+        }
+        .logo-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            display: inline-block;
+        }
+        .dark-bg {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .light-bg {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 紫夜公会 Logo 测试页面</h1>
+        <p>测试紫夜队徽在不同尺寸和背景下的显示效果</p>
+
+        <div class="logo-test">
+            <h3>📱 移动端导航栏尺寸 (32x32)</h3>
+            <div class="logo-display">
+                <div class="logo-container light-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-small">
+                </div>
+                <div class="logo-container dark-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-small">
+                </div>
+            </div>
+        </div>
+
+        <div class="logo-test">
+            <h3>💻 桌面端导航栏尺寸 (48x48)</h3>
+            <div class="logo-display">
+                <div class="logo-container light-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-medium">
+                </div>
+                <div class="logo-container dark-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-medium">
+                </div>
+            </div>
+        </div>
+
+        <div class="logo-test">
+            <h3>🏠 登录页面尺寸 (80x80)</h3>
+            <div class="logo-display">
+                <div class="logo-container light-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-large">
+                </div>
+                <div class="logo-container dark-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-large">
+                </div>
+            </div>
+        </div>
+
+        <div class="logo-test">
+            <h3>🌟 品牌展示</h3>
+            <div class="logo-display">
+                <div class="logo-container light-bg">
+                    <img src="/purple-night-logo.png" alt="紫夜公会" class="logo-large">
+                    <span style="margin-left: 15px; font-size: 24px; font-weight: bold;">紫夜公会</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="logo-test">
+            <h3>📋 技术信息</h3>
+            <p>文件路径: /purple-night-logo.png</p>
+            <p>使用位置:</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>网站 favicon (index.html)</li>
+                <li>登录页面 logo (Login.tsx)</li>
+                <li>用户端导航栏 (Layout.tsx)</li>
+                <li>管理端导航栏 (AdminLayout.tsx)</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 40px; padding: 20px; background: rgba(255, 255, 255, 0.1); border-radius: 12px;">
+            <p>✅ 如果你能看到上面的所有logo图片，说明紫夜队徽已成功部署！</p>
+            <p>🚀 现在可以访问主应用查看实际效果</p>
+        </div>
+    </div>
+</body>
+</html>
