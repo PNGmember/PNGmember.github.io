@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面 - 紫夜公会</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+        .info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        button {
+            background: rgba(124, 58, 237, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: rgba(124, 58, 237, 1);
+        }
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 紫夜公会 - 调试页面</h1>
+        
+        <img src="/purple-night-logo.png" alt="紫夜公会" class="logo" onerror="this.style.display='none'">
+        
+        <div class="info">
+            <strong>📍 当前页面:</strong> debug.html<br>
+            <strong>🌐 访问地址:</strong> <span id="currentUrl"></span><br>
+            <strong>⏰ 加载时间:</strong> <span id="loadTime"></span>
+        </div>
+        
+        <h2>🧪 基础功能测试</h2>
+        
+        <div id="jsTest" class="status">
+            <strong>JavaScript:</strong> <span id="jsStatus">检测中...</span>
+        </div>
+        
+        <div id="fetchTest" class="status">
+            <strong>网络请求:</strong> <span id="fetchStatus">检测中...</span>
+        </div>
+        
+        <div id="storageTest" class="status">
+            <strong>本地存储:</strong> <span id="storageStatus">检测中...</span>
+        </div>
+        
+        <div id="reactTest" class="status">
+            <strong>React环境:</strong> <span id="reactStatus">检测中...</span>
+        </div>
+        
+        <h2>🔗 快速链接</h2>
+        <button onclick="window.location.href='/'">返回主页</button>
+        <button onclick="window.location.href='/login'">登录页面</button>
+        <button onclick="window.location.href='/admin'">管理后台</button>
+        <button onclick="window.location.href='/test-logo.html'">Logo测试</button>
+        
+        <h2>📊 环境信息</h2>
+        <div class="info">
+            <strong>浏览器:</strong> <span id="userAgent"></span><br>
+            <strong>屏幕分辨率:</strong> <span id="screenSize"></span><br>
+            <strong>视口大小:</strong> <span id="viewportSize"></span><br>
+            <strong>时区:</strong> <span id="timezone"></span>
+        </div>
+        
+        <h2>🛠️ 调试工具</h2>
+        <button onclick="testMainApp()">测试主应用</button>
+        <button onclick="clearStorage()">清除缓存</button>
+        <button onclick="showConsoleLog()">显示控制台</button>
+        
+        <div id="debugOutput" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap; display: none;"></div>
+    </div>
+
+    <script>
+        // 记录加载时间
+        const loadTime = Date.now();
+        
+        // 基础信息显示
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('loadTime').textContent = new Date().toLocaleString();
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('screenSize').textContent = `${screen.width}x${screen.height}`;
+        document.getElementById('viewportSize').textContent = `${window.innerWidth}x${window.innerHeight}`;
+        document.getElementById('timezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // JavaScript测试
+        function testJavaScript() {
+            try {
+                const test = [1, 2, 3].map(x => x * 2);
+                document.getElementById('jsStatus').textContent = '✅ 正常';
+                document.getElementById('jsTest').className = 'status success';
+                return true;
+            } catch (error) {
+                document.getElementById('jsStatus').textContent = '❌ 错误: ' + error.message;
+                document.getElementById('jsTest').className = 'status error';
+                return false;
+            }
+        }
+        
+        // 网络请求测试
+        async function testFetch() {
+            try {
+                const response = await fetch('/purple-night-logo.png');
+                if (response.ok) {
+                    document.getElementById('fetchStatus').textContent = '✅ 正常';
+                    document.getElementById('fetchTest').className = 'status success';
+                } else {
+                    document.getElementById('fetchStatus').textContent = '❌ HTTP ' + response.status;
+                    document.getElementById('fetchTest').className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('fetchStatus').textContent = '❌ 错误: ' + error.message;
+                document.getElementById('fetchTest').className = 'status error';
+            }
+        }
+        
+        // 本地存储测试
+        function testStorage() {
+            try {
+                localStorage.setItem('test', 'value');
+                const value = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                
+                if (value === 'value') {
+                    document.getElementById('storageStatus').textContent = '✅ 正常';
+                    document.getElementById('storageTest').className = 'status success';
+                } else {
+                    document.getElementById('storageStatus').textContent = '❌ 读写失败';
+                    document.getElementById('storageTest').className = 'status error';
+                }
+            } catch (error) {
+                document.getElementById('storageStatus').textContent = '❌ 错误: ' + error.message;
+                document.getElementById('storageTest').className = 'status error';
+            }
+        }
+        
+        // React环境测试
+        function testReact() {
+            if (typeof React !== 'undefined') {
+                document.getElementById('reactStatus').textContent = '✅ React已加载';
+                document.getElementById('reactTest').className = 'status success';
+            } else {
+                document.getElementById('reactStatus').textContent = '❌ React未加载';
+                document.getElementById('reactTest').className = 'status error';
+            }
+        }
+        
+        // 测试主应用
+        function testMainApp() {
+            const output = document.getElementById('debugOutput');
+            output.style.display = 'block';
+            output.textContent = '正在测试主应用...\n';
+            
+            // 检查主页面的HTML结构
+            fetch('/')
+                .then(response => response.text())
+                .then(html => {
+                    output.textContent += '主页HTML加载成功\n';
+                    output.textContent += `HTML长度: ${html.length} 字符\n`;
+                    
+                    if (html.includes('<div id="root">')) {
+                        output.textContent += '✅ React根元素存在\n';
+                    } else {
+                        output.textContent += '❌ React根元素缺失\n';
+                    }
+                    
+                    // 检查JavaScript文件
+                    const scriptMatch = html.match(/src="([^"]+\.js[^"]*)"/);
+                    if (scriptMatch) {
+                        const scriptUrl = scriptMatch[1];
+                        output.textContent += `JavaScript文件: ${scriptUrl}\n`;
+                        
+                        fetch(scriptUrl)
+                            .then(response => {
+                                if (response.ok) {
+                                    output.textContent += '✅ JavaScript文件可访问\n';
+                                } else {
+                                    output.textContent += `❌ JavaScript文件访问失败: ${response.status}\n`;
+                                }
+                            })
+                            .catch(error => {
+                                output.textContent += `❌ JavaScript文件加载错误: ${error.message}\n`;
+                            });
+                    }
+                })
+                .catch(error => {
+                    output.textContent += `❌ 主页加载失败: ${error.message}\n`;
+                });
+        }
+        
+        // 清除缓存
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('缓存已清除，建议刷新页面');
+        }
+        
+        // 显示控制台
+        function showConsoleLog() {
+            alert('请按F12打开开发者工具查看控制台信息');
+        }
+        
+        // 运行所有测试
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testJavaScript();
+                testFetch();
+                testStorage();
+                testReact();
+            }, 100);
+        });
+        
+        // 错误捕获
+        window.addEventListener('error', (event) => {
+            console.error('页面错误:', event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('未处理的Promise拒绝:', event.reason);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试 - 紫夜公会</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 12px;
+        }
+        .btn {
+            background: rgba(124, 58, 237, 0.8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: rgba(124, 58, 237, 1);
+            transform: translateY(-2px);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .success { border-left: 4px solid #22c55e; }
+        .error { border-left: 4px solid #ef4444; }
+        .warning { border-left: 4px solid #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/purple-night-logo.png" alt="紫夜公会" class="logo">
+        
+        <h1>🎯 紫夜公会</h1>
+        <h2>成员信息管理平台</h2>
+        
+        <div class="status" id="status">
+            <strong>🔄 正在检测系统状态...</strong>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <a href="/" class="btn">🏠 进入主应用</a>
+            <a href="/debug.html" class="btn">🔍 详细调试</a>
+        </div>
+        
+        <div style="margin-top: 40px; font-size: 14px; opacity: 0.8;">
+            <p>如果主应用无法正常加载，可能的原因：</p>
+            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                <li>JavaScript执行错误</li>
+                <li>网络连接问题</li>
+                <li>浏览器兼容性问题</li>
+                <li>第三方服务（LeanCloud）连接问题</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+            <h3>🔐 测试账户</h3>
+            <p><strong>管理员:</strong> admin + 管理员密码</p>
+            <p><strong>学员:</strong> 昵称 + QQ号密码</p>
+        </div>
+    </div>
+
+    <script>
+        // 简单的状态检测
+        function checkStatus() {
+            const statusDiv = document.getElementById('status');
+            
+            // 检查基本JavaScript功能
+            try {
+                const test = [1, 2, 3].map(x => x * 2);
+                
+                // 检查fetch API
+                if (typeof fetch !== 'undefined') {
+                    statusDiv.innerHTML = '<strong>✅ 基础功能正常</strong><br>JavaScript和网络API可用';
+                    statusDiv.className = 'status success';
+                    
+                    // 测试主应用访问
+                    fetch('/')
+                        .then(response => response.text())
+                        .then(html => {
+                            if (html.includes('<div id="root">')) {
+                                statusDiv.innerHTML += '<br>✅ 主应用HTML结构正常';
+                            } else {
+                                statusDiv.innerHTML += '<br>⚠️ 主应用HTML结构异常';
+                                statusDiv.className = 'status warning';
+                            }
+                        })
+                        .catch(error => {
+                            statusDiv.innerHTML += '<br>❌ 主应用访问失败: ' + error.message;
+                            statusDiv.className = 'status error';
+                        });
+                        
+                } else {
+                    statusDiv.innerHTML = '<strong>❌ 浏览器不支持</strong><br>缺少必要的API支持';
+                    statusDiv.className = 'status error';
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = '<strong>❌ JavaScript错误</strong><br>' + error.message;
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        // 页面加载完成后检测
+        window.addEventListener('load', () => {
+            setTimeout(checkStatus, 500);
+        });
+        
+        // 错误监听
+        window.addEventListener('error', (event) => {
+            console.error('页面错误:', event.error);
+        });
+    </script>
+</body>
+</html>
