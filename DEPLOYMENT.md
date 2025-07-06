@@ -1,122 +1,152 @@
 # 🚀 GitHub Pages 部署指南
 
-## 📋 部署步骤
+## 📋 部署准备
 
-### 1. 推送代码到GitHub仓库
+### ✅ 已完成的配置
+
+1. **项目构建配置**
+   - ✅ Vite 配置已优化
+   - ✅ TypeScript 配置已修复
+   - ✅ 构建脚本已更新
+   - ✅ 紫夜队徽已集成
+
+2. **GitHub Actions 工作流**
+   - ✅ 自动构建和部署配置
+   - ✅ 部署到 gh-pages 分支
+   - ✅ Node.js 18 环境
+
+3. **项目特性**
+   - ✅ 紫夜公会官方队徽
+   - ✅ 密码加密安全系统
+   - ✅ 响应式设计
+   - ✅ 深色/浅色主题
+   - ✅ 完整的用户管理系统
+
+## 🔧 部署步骤
+
+### 1. 推送代码到 GitHub
 
 ```bash
-# 添加远程仓库（如果还没有添加）
-git remote add origin https://github.com/PurpleNightGame/PNGinfo.git
+# 如果还没有添加远程仓库
+git remote add origin https://github.com/PNGinfo/pnginfo.github.io.git
 
 # 添加所有文件
 git add .
 
 # 提交更改
-git commit -m "feat: 部署紫夜公会成员信息管理平台"
+git commit -m "部署紫夜公会成员信息管理平台到GitHub Pages"
 
 # 推送到main分支
-git push -u origin main
+git push origin main
 ```
 
-### 2. 启用GitHub Pages
+### 2. 配置 GitHub Pages
 
-1. 访问仓库设置页面：https://github.com/PurpleNightGame/PNGinfo/settings/pages
-2. 在 "Source" 部分选择 "GitHub Actions"
-3. 保存设置
+1. 访问 GitHub 仓库: https://github.com/PNGinfo/pnginfo.github.io
+2. 进入 **Settings** > **Pages**
+3. 在 **Source** 部分选择:
+   - **Deploy from a branch**
+   - **Branch**: `gh-pages`
+   - **Folder**: `/ (root)`
+4. 点击 **Save**
 
-### 3. 自动部署
+### 3. 等待部署完成
 
-- 每次推送到 `main` 分支时，GitHub Actions 会自动构建和部署
-- 部署完成后，网站将在以下地址可用：
-  - **主地址**: https://purplenightgame.github.io/PNGinfo/
-  - **登录页面**: https://purplenightgame.github.io/PNGinfo/login
-  - **管理后台**: https://purplenightgame.github.io/PNGinfo/admin
+- GitHub Actions 会自动构建项目
+- 构建完成后会部署到 gh-pages 分支
+- 首次部署可能需要 5-10 分钟
 
-## 🔧 配置说明
+## 🌐 访问地址
 
-### Vite 配置
-- `base: '/PNGinfo/'` - 设置正确的基础路径
-- `outDir: 'dist'` - 构建输出目录
+部署完成后，网站将在以下地址可用：
 
-### GitHub Actions 工作流
-- 文件位置: `.github/workflows/deploy.yml`
-- 触发条件: 推送到 `main` 分支
-- 构建工具: Node.js 18 + npm
-- 部署工具: peaceiris/actions-gh-pages@v3
+- **主站**: https://pnginfo.github.io/
+- **Logo测试页**: https://pnginfo.github.io/test-logo.html
 
-## 📱 功能特性
+## 📁 项目结构
 
-### 🔐 用户认证
-- 学员登录：使用用户名和QQ号密码
-- 管理员登录：使用管理员账户
-- 密码加密存储（SHA-256）
+```
+紫夜公会成员信息管理平台/
+├── public/
+│   ├── purple-night-logo.png    # 紫夜队徽
+│   └── test-logo.html           # Logo测试页面
+├── src/
+│   ├── components/              # React组件
+│   ├── contexts/               # 上下文管理
+│   ├── services/               # 服务层
+│   └── config/                 # 配置文件
+├── .github/workflows/
+│   └── deploy.yml              # GitHub Actions部署配置
+└── dist/                       # 构建输出目录
+```
+
+## 🎯 功能特性
+
+### 🔐 用户系统
+- 学员登录（使用QQ号）
+- 管理员登录
+- 密码加密存储
 - 记住登录状态
 
-### 📚 学员功能
-- 查看个人课程进度
-- 查看学习统计
-- 修改个人密码
-- 响应式界面设计
+### 📚 课程管理
+- 课程进度查询
+- 课程分配管理
+- 进度统计分析
+- 培训报告
 
-### ⚙️ 管理功能
-- 用户管理（添加、编辑、删除学员）
-- 课程管理（查看课程信息）
-- 进度管理（分配课程、调整进度）
-- 数据统计和分析
-
-### 🎨 界面特色
-- 现代化UI设计
+### 🎨 界面特性
+- 紫夜公会官方队徽
+- 响应式设计
 - 深色/浅色主题切换
-- 紫夜公会品牌标识
-- 移动端适配
+- 现代化UI设计
 
-## 🗄️ 数据库配置
+### 🛡️ 安全特性
+- SHA-256密码加密
+- 加盐哈希防护
+- 角色权限控制
+- 安全的API调用
 
-### LeanCloud 设置
-- AppID: `zgIzsvGerDuX3SJmLsKDKs6k-gzGzoHsz`
-- AppKey: `wyqlYopPy4q7z9rUo9SaWeY8`
-- Server: `https://zgizsvge.lc-cn-n1-shared.com`
+## 🔄 更新部署
 
-### 数据表结构
-- `_User`: 管理员账户
-- `Student`: 学员信息
-- `Course`: 课程信息
-- `CourseProgress`: 学习进度
-- `Member`: 成员基础信息
-
-## 🔍 测试账户
-
-### 管理员账户
-- 用户名: `admin`
-- 密码: 联系管理员获取
-
-### 学员账户
-- 用户名: 学员昵称
-- 密码: 学员QQ号
-
-## 🛠️ 本地开发
+当需要更新网站时：
 
 ```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 预览构建结果
-npm run preview
-
-# 部署到GitHub Pages
-npm run deploy
+# 修改代码后
+git add .
+git commit -m "更新描述"
+git push origin main
 ```
+
+GitHub Actions 会自动重新构建和部署。
+
+## 🐛 故障排除
+
+### 构建失败
+- 检查 GitHub Actions 日志
+- 确保所有依赖都在 package.json 中
+- 检查 TypeScript 错误
+
+### 页面无法访问
+- 确认 GitHub Pages 设置正确
+- 检查 gh-pages 分支是否存在
+- 等待 DNS 传播（可能需要几分钟）
+
+### 功能异常
+- 检查浏览器控制台错误
+- 确认 LeanCloud 配置正确
+- 检查网络连接
 
 ## 📞 技术支持
 
-如有问题或建议，请联系紫夜公会技术团队。
+如遇到部署问题，请检查：
 
----
+1. **GitHub Actions 状态**: 仓库的 Actions 标签页
+2. **构建日志**: 查看详细的错误信息
+3. **浏览器控制台**: 检查前端错误
+4. **网络连接**: 确保可以访问 LeanCloud 服务
 
-**紫夜公会成员信息管理平台** - 专为紫夜公会成员设计的学习进度查询和管理系统
+## 🎉 部署完成
+
+恭喜！紫夜公会成员信息管理平台已成功部署到 GitHub Pages！
+
+访问 https://pnginfo.github.io/ 开始使用。

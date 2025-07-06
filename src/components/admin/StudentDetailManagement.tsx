@@ -106,9 +106,9 @@ export default function StudentDetailManagement({ userId, onClose, onUpdate }: S
 
       await LeanCloudService.updateCourseProgress(progressId, {
         progress: editValues.progress,
-        status: statusToSave as 'not_started' | 'in_progress' | 'completed' | 'paused',
+        status: statusToSave,
         lastStudyDate: new Date(),
-        notes: editValues.remark
+        remark: editValues.remark
       })
       
       setEditingProgress(null)

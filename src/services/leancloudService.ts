@@ -283,9 +283,7 @@ export class LeanCloudService {
       const currentUser = AV.User.current()
       if (currentUser) {
         // 使用_User的密码修改方法
-        // await currentUser.updatePassword(currentPassword, newPassword)
-        // Note: LeanCloud User updatePassword method may not be available, using alternative approach
-        throw new Error('管理员密码修改功能暂未实现')
+        await currentUser.updatePassword(currentPassword, newPassword)
         return
       }
 
