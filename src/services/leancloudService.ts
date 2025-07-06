@@ -1109,25 +1109,9 @@ export class LeanCloudService {
       courseQuery.containedIn('objectId', courseIds)
       const courses = await courseQuery.find()
 
-      // 批量查询Student记录
-      const studentQuery = new AV.Query('Student')
-      studentQuery.containedIn('userId', userIds)
-      const studentRecords = await studentQuery.find()
-
-      // 创建User ID到Student ID的映射
-      const userToStudentMap = new Map()
-      studentRecords.forEach(student => {
-        userToStudentMap.set(student.get('userId'), student.id)
-      })
-
       const progressObjects = []
 
       for (const userId of userIds) {
-        const studentId = userToStudentMap.get(userId)
-        if (!studentId) {
-          console.warn(`未找到用户 ${userId} 对应的Student记录，跳过`)
-          continue
-        }
 
         for (const course of courses) {
           // 检查是否已经分配过
@@ -1138,17 +1122,14 @@ export class LeanCloudService {
 
           if (!existing) {
             const progress = new AV.Object('CourseProgress')
-            progress.set('userId', userId) // 使用User ID而不是Student ID
+            progress.set('userId', userId)
             progress.set('courseId', course.id)
             progress.set('courseName', course.get('name'))
             progress.set('courseCategory', course.get('category'))
-            progress.set('completedLessons', 0)
-            progress.set('totalLessons', course.get('totalLessons'))
-            progress.set('progress', 0)
-            progress.set('lastStudyDate', new Date())
-            progress.set('status', 'not_started')
-            progress.set('notes', '')
             progress.set('courseOrder', course.get('order'))
+            progress.set('progress', 0)
+            progress.set('status', 'not_started')
+            progress.set('lastStudyDate', null)
 
             progressObjects.push(progress)
           }
@@ -1159,7 +1140,8 @@ export class LeanCloudService {
         await AV.Object.saveAll(progressObjects)
       }
     } catch (error) {
-      throw new Error('批量分配课程失败')
+      console.error('批量分配课程失败:', error)
+      throw new Error(error.message || '批量分配课程失败')
     }
   }
 
