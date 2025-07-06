@@ -1132,13 +1132,13 @@ export class LeanCloudService {
         for (const course of courses) {
           // 检查是否已经分配过
           const existingQuery = new AV.Query('CourseProgress')
-          existingQuery.equalTo('userId', studentId)
+          existingQuery.equalTo('userId', userId) // 使用User ID而不是Student ID
           existingQuery.equalTo('courseId', course.id)
           const existing = await existingQuery.first()
 
           if (!existing) {
             const progress = new AV.Object('CourseProgress')
-            progress.set('userId', studentId) // 使用Student ID
+            progress.set('userId', userId) // 使用User ID而不是Student ID
             progress.set('courseId', course.id)
             progress.set('courseName', course.get('name'))
             progress.set('courseCategory', course.get('category'))
