@@ -745,8 +745,71 @@ export class LeanCloudService {
     }
   }
 
-  static getMemberLevelProgress(courseProgress: CourseProgress[]): { current: MemberLevel, next?: MemberLevel, progressToNext: number } {
-    const current = this.calculateMemberLevel(courseProgress)
+  // 获取学员的实际等级（包括手动设置的等级）
+  static async getStudentActualLevel(studentId: string): Promise<string> {
+    try {
+      const studentQuery = new AV.Query('Student')
+      const student = await studentQuery.get(studentId)
+
+      if (!student) {
+        return '未新训'
+      }
+
+      // 优先使用手动设置的等级
+      const manualLevel = student.get('level')
+      if (manualLevel && manualLevel !== '未新训') {
+        return manualLevel
+      }
+
+      // 如果没有手动设置，则根据课程进度计算
+      const courseProgress = await this.getUserCourseProgress(studentId)
+      if (courseProgress.length > 0) {
+        const levelInfo = this.calculateMemberLevel(courseProgress)
+        return levelInfo.level
+      }
+
+      return '未新训'
+    } catch (error) {
+      console.error('获取学员等级失败:', error)
+      return '未新训'
+    }
+  }
+
+  static getMemberLevelProgress(courseProgress: CourseProgress[], actualLevel?: string): { current: MemberLevel, next?: MemberLevel, progressToNext: number } {
+    // 如果提供了实际等级，使用实际等级；否则根据课程进度计算
+    let current: MemberLevel
+    if (actualLevel && actualLevel !== '未新训') {
+      // 检查是否是已知的等级类型
+      const validLevels = ['新训初期', '新训一期', '新训二期', '新训三期', '新训准考', '正式队员', '紫夜尖兵']
+      if (validLevels.includes(actualLevel)) {
+        // 对于已知的等级类型，创建对应的MemberLevel对象
+        if (actualLevel === '正式队员') {
+          current = {
+            level: '正式队员',
+            description: '已通过新训考核的正式队员',
+            requirements: ['通过新训考核']
+          }
+        } else if (actualLevel === '紫夜尖兵') {
+          current = {
+            level: '紫夜尖兵',
+            description: '完成所有训练的精英队员',
+            requirements: ['完成所有进阶课程']
+          }
+        } else {
+          // 对于其他新训阶段，使用标准描述
+          current = {
+            level: actualLevel as any,
+            description: '手动设置的等级',
+            requirements: ['管理员手动设置']
+          }
+        }
+      } else {
+        // 对于未知等级，回退到课程进度计算
+        current = this.calculateMemberLevel(courseProgress)
+      }
+    } else {
+      current = this.calculateMemberLevel(courseProgress)
+    }
     const completedCourses = courseProgress.filter(p => p.status === 'completed')
 
     const completedByCategory = {
@@ -845,11 +908,14 @@ export class LeanCloudService {
 
         // 根据课程进度计算等级
         let calculatedLevel = '未新训'
-        if (userProgress.length > 0) {
+
+        // 优先使用手动设置的等级（如"正式队员"）
+        const manualLevel = student.get('level')
+        if (manualLevel && manualLevel !== '未新训') {
+          calculatedLevel = manualLevel
+        } else if (userProgress.length > 0) {
           const levelInfo = this.calculateMemberLevel(userProgress)
           calculatedLevel = levelInfo.level
-
-
         }
 
         // 构造email（优先使用Student表的qqNumber）
@@ -1559,6 +1625,60 @@ export class LeanCloudService {
     } catch (error) {
       console.error(`同步学员 ${studentId} 的课程进度失败:`, error)
       throw error
+    }
+  }
+
+  // 通过新训考核（临时功能）
+  static async passNewTrainingExam(studentIds: string[]): Promise<{ success: number, failed: number, errors: string[] }> {
+    try {
+      console.log('🎓 开始处理新训考核通过...')
+
+      let successCount = 0
+      let failedCount = 0
+      const errors: string[] = []
+
+      for (const studentId of studentIds) {
+        try {
+          // 查找Student记录
+          const studentQuery = new AV.Query('Student')
+          const student = await studentQuery.get(studentId)
+
+          if (!student) {
+            errors.push(`未找到学员记录: ${studentId}`)
+            failedCount++
+            continue
+          }
+
+          const nickname = student.get('nickname')
+          console.log(`处理学员: ${nickname}`)
+
+          // 更新学员等级为"正式队员"
+          student.set('level', '正式队员')
+          student.set('examPassDate', new Date()) // 记录考核通过时间
+
+          await student.save()
+
+          successCount++
+          console.log(`✅ 学员 ${nickname} 已通过新训考核`)
+
+        } catch (error) {
+          errors.push(`处理学员失败: ${error.message}`)
+          failedCount++
+          console.error(`处理学员失败:`, error)
+        }
+      }
+
+      console.log(`🎉 新训考核处理完成: 成功 ${successCount}, 失败 ${failedCount}`)
+
+      return {
+        success: successCount,
+        failed: failedCount,
+        errors: errors
+      }
+
+    } catch (error) {
+      console.error('处理新训考核失败:', error)
+      throw new Error('处理新训考核失败: ' + error.message)
     }
   }
 

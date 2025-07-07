@@ -39,6 +39,13 @@ export default function CourseAssignment() {
     errors: string[]
   } | null>(null)
   const [showSyncModal, setShowSyncModal] = useState(false)
+  const [passingExam, setPassingExam] = useState(false)
+  const [examResult, setExamResult] = useState<{
+    success: number
+    failed: number
+    errors: string[]
+  } | null>(null)
+  const [showExamModal, setShowExamModal] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -229,6 +236,33 @@ export default function CourseAssignment() {
     }
   }
 
+  const handlePassNewTrainingExam = async () => {
+    if (selectedUsers.length === 0) {
+      setError('请选择需要通过新训考核的学员')
+      return
+    }
+
+    try {
+      setPassingExam(true)
+      setError('')
+
+      const result = await LeanCloudService.passNewTrainingExam(selectedUsers)
+      setExamResult(result)
+      setShowExamModal(true)
+
+      // 重新加载数据
+      await loadData()
+
+      // 清空选择
+      setSelectedUsers([])
+
+    } catch (error: any) {
+      setError('处理新训考核失败: ' + (error.message || '未知错误'))
+    } finally {
+      setPassingExam(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -265,6 +299,18 @@ export default function CourseAssignment() {
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
             {syncing ? '同步中...' : '同步管理系统进度'}
+          </button>
+          <button
+            onClick={handlePassNewTrainingExam}
+            className="btn-success flex items-center"
+            disabled={selectedUsers.length === 0 || passingExam}
+          >
+            {passingExam ? (
+              <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <CheckSquare className="w-4 h-4 mr-2" />
+            )}
+            {passingExam ? '处理中...' : `通过新训考核 (${selectedUsers.length})`}
           </button>
           <button
             onClick={() => setShowAssignModal(true)}
@@ -642,6 +688,84 @@ export default function CourseAssignment() {
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => setShowSyncModal(false)}
+                className="btn-primary"
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exam Result Modal */}
+      {showExamModal && examResult && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black dark:bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                新训考核处理结果
+              </h3>
+              <button
+                onClick={() => setShowExamModal(false)}
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* 统计信息 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {examResult.success}
+                  </div>
+                  <div className="text-sm text-green-600 dark:text-green-400">
+                    成功通过考核
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {examResult.failed}
+                  </div>
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    处理失败
+                  </div>
+                </div>
+              </div>
+
+              {/* 错误信息 */}
+              {examResult.errors.length > 0 && (
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
+                    错误详情:
+                  </h4>
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {examResult.errors.map((error, index) => (
+                      <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1">
+                        • {error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 说明信息 */}
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                  🎓 新训考核说明:
+                </h4>
+                <div className="text-xs text-green-700 dark:text-green-400 space-y-1">
+                  <div>• 通过新训考核的学员等级将更新为"正式队员"</div>
+                  <div>• 系统会记录考核通过时间</div>
+                  <div>• 此功能为临时功能，后续将替换为正式的考核报告系统</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowExamModal(false)}
                 className="btn-primary"
               >
                 确定

@@ -34,8 +34,11 @@ export default function Dashboard() {
       const progress = await LeanCloudService.getUserCourseProgress(user!.id)
       setCourseProgress(progress)
 
-      // 计算成员等级
-      const levelInfo = LeanCloudService.getMemberLevelProgress(progress)
+      // 获取学员的实际等级（包括手动设置的等级）
+      const actualLevel = await LeanCloudService.getStudentActualLevel(user!.id)
+
+      // 计算成员等级进度
+      const levelInfo = LeanCloudService.getMemberLevelProgress(progress, actualLevel)
       setMemberLevel(levelInfo)
     } catch (error) {
       setError('加载数据失败')
