@@ -1030,50 +1030,77 @@ export class LeanCloudService {
     password: string
   }): Promise<User> {
     try {
-      // 创建_User记录
-      const user = new AV.User()
-      user.set('username', userData.username)
-      user.set('password', userData.password)
-      user.set('email', userData.email)
-      user.set('nickname', userData.nickname)
-      user.set('role', userData.role)
-      user.set('isActive', userData.isActive)
-      user.set('joinDate', new Date())
-      user.set('guild', 'purplenight')
-
-      await user.signUp()
-
-      // 如果是学员，同时创建Student表记录
+      // 如果是学员，使用与导入学员相同的逻辑
       if (userData.role === 'student') {
-        try {
-          const student = new AV.Object('Student')
-          student.set('userId', user.id)
-          student.set('username', userData.username)
-          student.set('email', userData.email)
-          student.set('nickname', userData.nickname)
-          student.set('name', userData.nickname)
-          student.set('studentId', `PN${Date.now().toString().slice(-6)}`) // 生成学员ID
-          student.set('level', '未新训')
-          student.set('guild', 'purplenight')
-          student.set('isActive', userData.isActive)
-          student.set('joinDate', new Date())
+        // 检查Student表中是否已存在相同用户名的记录
+        const existingStudentQuery = new AV.Query('Student')
+        existingStudentQuery.equalTo('username', userData.username)
+        const existingStudent = await existingStudentQuery.first()
 
-          await student.save()
-        } catch (error) {
-          console.warn('创建Student表记录失败:', error)
+        if (existingStudent) {
+          throw new Error('用户名已存在')
         }
-      }
 
-      return {
-        id: user.id,
-        username: user.get('username'),
-        email: user.get('email'),
-        nickname: user.get('nickname'),
-        role: user.get('role'),
-        isActive: user.get('isActive'),
-        joinDate: user.get('joinDate'),
-        permissions: user.get('permissions') || [],
-        guild: user.get('guild')
+        // 创建Student记录（与导入学员逻辑一致）
+        const Student = AV.Object.extend('Student')
+        const student = new Student()
+
+        // 加密密码（与导入学员逻辑一致）
+        const hashedPassword = await PasswordUtils.hashPassword(userData.password)
+
+        // 从邮箱中提取QQ号
+        const qqNumber = userData.email.replace('@qq.com', '')
+
+        student.set('nickname', userData.nickname)
+        student.set('username', userData.username)
+        student.set('email', userData.email)
+        student.set('qqNumber', qqNumber)
+        student.set('password', hashedPassword) // 保存加密后的密码
+        student.set('level', '未新训')
+        student.set('guild', 'purplenight')
+        student.set('joinDate', new Date())
+        student.set('isActive', userData.isActive)
+        student.set('studentId', `PN${Date.now().toString().slice(-6)}`) // 生成学员ID
+
+        await student.save()
+
+        return {
+          id: student.id,
+          username: student.get('username'),
+          email: student.get('email'),
+          nickname: student.get('nickname'),
+          joinDate: student.get('joinDate'),
+          isActive: student.get('isActive'),
+          role: 'student',
+          permissions: [],
+          qqNumber: student.get('qqNumber'),
+          level: student.get('level')
+        }
+      } else {
+        // 对于管理员等其他角色，仍然使用_User表
+        const user = new AV.User()
+        user.set('username', userData.username)
+        user.set('password', userData.password)
+        user.set('email', userData.email)
+        user.set('nickname', userData.nickname)
+        user.set('role', userData.role)
+        user.set('isActive', userData.isActive)
+        user.set('joinDate', new Date())
+        user.set('guild', 'purplenight')
+
+        await user.signUp()
+
+        return {
+          id: user.id,
+          username: user.get('username'),
+          email: user.get('email'),
+          nickname: user.get('nickname'),
+          joinDate: user.get('joinDate'),
+          isActive: user.get('isActive'),
+          role: userData.role,
+          permissions: [],
+          guild: 'purplenight'
+        }
       }
     } catch (error) {
       throw new Error('创建用户失败: ' + error.message)
