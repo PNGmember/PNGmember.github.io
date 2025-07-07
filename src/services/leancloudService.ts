@@ -606,19 +606,48 @@ export class LeanCloudService {
   }
 
   static async updateCourseProgress(progressId: string, updates: Partial<CourseProgress>): Promise<void> {
-    try {
-      const query = new AV.Query('CourseProgress')
-      const progress = await query.get(progressId)
-      
-      Object.keys(updates).forEach(key => {
-        if (updates[key as keyof CourseProgress] !== undefined) {
-          progress.set(key, updates[key as keyof CourseProgress])
+    const maxRetries = 3
+    let lastError: any
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const query = new AV.Query('CourseProgress')
+        const progress = await query.get(progressId)
+
+        Object.keys(updates).forEach(key => {
+          if (updates[key as keyof CourseProgress] !== undefined) {
+            progress.set(key, updates[key as keyof CourseProgress])
+          }
+        })
+
+        await progress.save()
+        return // 成功则直接返回
+      } catch (error: any) {
+        lastError = error
+
+        // 如果是429错误且不是最后一次尝试，等待后重试
+        if ((error.code === 429 || error.status === 429) && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000 // 指数退避：2s, 4s, 8s
+          console.warn(`请求限流，${delay/1000}秒后重试 (尝试 ${attempt}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          continue
         }
-      })
-      
-      await progress.save()
-    } catch (error) {
-      throw new Error('更新学习进度失败')
+
+        // 其他错误或最后一次尝试失败，直接抛出
+        break
+      }
+    }
+
+    // 处理最终的错误
+    if (lastError.code === 429 || lastError.status === 429) {
+      throw new Error('请求过于频繁，请稍后再试')
+    } else if (lastError.code === 101) {
+      throw new Error('找不到指定的进度记录')
+    } else if (lastError.code === 403) {
+      throw new Error('没有权限更新此记录')
+    } else {
+      console.error('更新学习进度失败:', lastError)
+      throw new Error(`更新学习进度失败: ${lastError.message || '未知错误'}`)
     }
   }
 
@@ -865,31 +894,25 @@ export class LeanCloudService {
       query.include('course')
       const results = await query.find()
 
-      // 获取所有唯一的用户ID（这些是_User表的ID）
-      const userIds = [...new Set(results.map(p => p.get('userId')))]
-
-      // 批量查询Student信息
+      // 获取所有用户信息（使用与getAllUsers相同的逻辑）
+      const allUsers = await this.getAllUsers()
       const userMap = new Map()
 
-      try {
-        const studentQuery = new AV.Query('Student')
-        studentQuery.containedIn('userId', userIds) // 使用userId字段而不是objectId
-        const students = await studentQuery.find()
-
-        students.forEach(student => {
-          const userId = student.get('userId')
-          userMap.set(userId, {
-            nickname: student.get('nickname') || student.get('name'),
-            username: student.get('username') || student.get('studentId'),
-            realUserId: userId // 真实的_User表ID
-          })
+      // 创建用户ID到用户信息的映射
+      allUsers.forEach(user => {
+        userMap.set(user.id, {
+          nickname: user.nickname,
+          username: user.username,
+          studentId: (user as any).studentId // 临时类型断言
         })
+      })
 
-        console.log(`找到 ${students.length} 个Student记录，对应 ${userIds.length} 个用户ID`)
-        console.log('未找到Student记录的用户ID:', userIds.filter(id => !userMap.has(id)))
-      } catch (error) {
-        console.warn('无法查询Student表:', error)
-      }
+      console.log(`找到 ${allUsers.length} 个用户记录`)
+
+      // 获取所有唯一的用户ID
+      const userIds = [...new Set(results.map(p => p.get('userId')))]
+      console.log('CourseProgress中的用户ID:', userIds.length)
+      console.log('未找到用户记录的ID:', userIds.filter(id => !userMap.has(id)))
 
       return results.map(progress => {
         const userId = progress.get('userId')
@@ -899,10 +922,11 @@ export class LeanCloudService {
         // 改进用户名显示逻辑
         let userName = '未知用户'
         if (userInfo) {
-          userName = userInfo.nickname || userInfo.username || '未知用户'
+          // 优先显示昵称，其次用户名，最后学员ID
+          userName = userInfo.nickname || userInfo.username || userInfo.studentId || '未知用户'
         } else {
-          // 如果找不到Student记录，尝试使用userId的后6位作为显示
-          userName = `学员${userId ? userId.slice(-6) : 'UNKNOWN'}`
+          // 如果找不到用户记录，显示更友好的信息
+          userName = `未知用户 (${userId ? userId.slice(0, 8) : 'N/A'}...)`
         }
 
         return {

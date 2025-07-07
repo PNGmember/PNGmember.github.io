@@ -175,33 +175,54 @@ export default function ProgressManagement() {
     }
   }
 
-  // 批量更新进度
+  // 批量更新进度（添加限流处理）
   const handleBatchUpdate = async () => {
     try {
+      setError('') // 清除之前的错误
       const updates = {
         progress: batchProgress,
         status: batchStatus,
         lastStudyDate: new Date()
       }
 
-      // 批量更新选中的项目
-      await Promise.all(
-        selectedItems.map(id =>
-          LeanCloudService.updateCourseProgress(id, updates)
-        )
-      )
+      // 分批处理，避免触发限流
+      const batchSize = 3 // 每批处理3个请求
+      const delay = 500 // 每批之间延迟500ms
 
-      // 更新本地状态
-      setProgressData(progressData.map(p =>
-        selectedItems.includes(p.id) ? { ...p, ...updates } : p
-      ))
+      for (let i = 0; i < selectedItems.length; i += batchSize) {
+        const batch = selectedItems.slice(i, i + batchSize)
+
+        try {
+          // 并发处理当前批次
+          await Promise.all(
+            batch.map(id => LeanCloudService.updateCourseProgress(id, updates))
+          )
+
+          // 更新本地状态（当前批次）
+          setProgressData(prev => prev.map(p =>
+            batch.includes(p.id) ? { ...p, ...updates } : p
+          ))
+
+          // 如果不是最后一批，等待一段时间
+          if (i + batchSize < selectedItems.length) {
+            await new Promise(resolve => setTimeout(resolve, delay))
+          }
+        } catch (batchError) {
+          console.error(`批次 ${Math.floor(i / batchSize) + 1} 更新失败:`, batchError)
+          throw new Error(`批次更新失败: ${batchError.message}`)
+        }
+      }
 
       setSelectedItems([])
       setShowBatchModal(false)
       setBatchProgress(0)
       setBatchStatus('in_progress')
+
+      // 显示成功消息
+      alert(`成功更新了 ${selectedItems.length} 个进度记录`)
     } catch (error) {
-      setError('批量更新失败')
+      console.error('批量更新失败:', error)
+      setError(`批量更新失败: ${error.message || '未知错误'}`)
     }
   }
 
