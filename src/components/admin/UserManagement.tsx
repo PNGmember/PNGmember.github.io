@@ -245,13 +245,21 @@ export default function UserManagement() {
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('确定要删除这个用户吗？')) {
+    const user = users.find(u => u.id === userId)
+    const userName = user?.nickname || user?.username || '未知用户'
+
+    if (window.confirm(`确定要删除用户"${userName}"吗？\n\n⚠️ 此操作将同时删除：\n- 用户基本信息\n- 所有课程进度记录\n\n此操作不可恢复！`)) {
       try {
-        // 演示模式：仅从本地状态中移除
+        setError('') // 清除之前的错误
+        await LeanCloudService.deleteUser(userId)
+
+        // 从本地状态中移除
         setUsers(users.filter(u => u.id !== userId))
-        console.log(`删除用户 ${userId}`)
-      } catch (error) {
-        setError('删除用户失败')
+
+        console.log(`成功删除用户: ${userName}`)
+      } catch (error: any) {
+        setError('删除用户失败: ' + (error.message || '未知错误'))
+        console.error('删除用户失败:', error)
       }
     }
   }

@@ -992,6 +992,35 @@ export class LeanCloudService {
     }
   }
 
+  static async deleteUser(userId: string): Promise<void> {
+    try {
+      // 删除Student表中的记录
+      const studentQuery = new AV.Query('Student')
+      const student = await studentQuery.get(userId)
+
+      if (!student) {
+        throw new Error('未找到对应的学员记录')
+      }
+
+      // 删除相关的课程进度记录
+      const progressQuery = new AV.Query('CourseProgress')
+      progressQuery.equalTo('userId', userId)
+      const progressRecords = await progressQuery.find()
+
+      if (progressRecords.length > 0) {
+        await AV.Object.destroyAll(progressRecords as any[])
+        console.log(`删除了 ${progressRecords.length} 条课程进度记录`)
+      }
+
+      // 删除Student记录
+      await student.destroy()
+      console.log(`成功删除学员: ${student.get('nickname')}`)
+    } catch (error) {
+      console.error('删除用户失败:', error)
+      throw new Error('删除用户失败: ' + (error.message || '未知错误'))
+    }
+  }
+
   static async createUser(userData: {
     username: string
     email: string
