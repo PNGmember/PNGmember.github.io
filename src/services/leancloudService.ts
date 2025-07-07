@@ -681,21 +681,6 @@ export class LeanCloudService {
   static calculateMemberLevel(courseProgress: CourseProgress[]): MemberLevel {
     const completedCourses = courseProgress.filter(p => p.status === 'completed')
 
-    // 调试信息：显示所有课程状态和类别
-    console.log('等级计算调试信息:', {
-      总课程数: courseProgress.length,
-      已完成课程数: completedCourses.length,
-      所有课程状态: courseProgress.map(p => ({
-        课程: p.courseName,
-        类别: p.courseCategory,
-        状态: p.status
-      })),
-      已完成课程: completedCourses.map(p => ({
-        课程: p.courseName,
-        类别: p.courseCategory
-      }))
-    })
-
     // 按课程类别统计完成情况
     const completedByCategory = {
       '入门课程': completedCourses.filter(p => p.courseCategory === '入门课程').length,
@@ -704,8 +689,6 @@ export class LeanCloudService {
       '团队训练': completedCourses.filter(p => p.courseCategory === '团队训练').length,
       '进阶课程': completedCourses.filter(p => p.courseCategory === '进阶课程').length
     }
-
-    console.log('按类别统计完成情况:', completedByCategory)
 
     // 总课程数量
     const totalByCategory = {
@@ -824,78 +807,44 @@ export class LeanCloudService {
       const students = await studentQuery.find()
 
       // 获取所有学员的课程进度来计算等级
-      const userIds = students.map(s => s.get('userId')).filter(id => id)
+      const studentIds = students.map(s => s.id) // 使用Student表的ID
       const progressMap = new Map()
 
-      if (userIds.length > 0) {
+      if (studentIds.length > 0) {
         try {
-          // 批量查询Student记录
-          const studentRecordsQuery = new AV.Query('Student')
-          studentRecordsQuery.containedIn('userId', userIds)
-          const studentRecords = await studentRecordsQuery.find()
-
-          // 创建User ID到Student ID的映射
-          const userToStudentMap = new Map()
-          studentRecords.forEach(student => {
-            userToStudentMap.set(student.get('userId'), student.id)
-          })
-
-          // 批量查询所有进度记录（使用User ID而不是Student ID）
+          // 使用Student ID查询CourseProgress
           const progressQuery = new AV.Query('CourseProgress')
-          progressQuery.containedIn('userId', userIds) // 直接使用User ID
+          progressQuery.containedIn('userId', studentIds)
           const progressList = await progressQuery.find()
 
-          console.log(`查询到 ${progressList.length} 条课程进度记录`)
-          console.log('用户ID列表:', userIds)
-          console.log('进度记录中的用户ID:', [...new Set(progressList.map(p => p.get('userId')))])
-
-          // 按User ID分组进度记录
+          // 按Student ID分组进度记录
           progressList.forEach(progress => {
             const userId = progress.get('userId')
 
-            if (userId && userIds.includes(userId)) {
+            if (userId && studentIds.includes(userId)) {
               if (!progressMap.has(userId)) {
                 progressMap.set(userId, [])
               }
               progressMap.get(userId).push({
-                id: progress.id,
-                userId: progress.get('userId'),
-                courseId: progress.get('courseId'),
-                courseName: progress.get('courseName'),
-                courseCategory: progress.get('courseCategory'),
-                progress: progress.get('progress'),
                 status: progress.get('status'),
-                lastStudyDate: progress.get('lastStudyDate'),
-                notes: progress.get('notes'),
-                courseOrder: progress.get('courseOrder')
-              } as CourseProgress)
+                courseCategory: progress.get('courseCategory')
+              })
             }
           })
-
-          console.log('进度数据映射:', Object.fromEntries(progressMap))
         } catch (error) {
           console.warn('获取课程进度失败:', error)
         }
       }
 
       return students.map(student => {
-        const userId = student.get('userId')
-        const userProgress = progressMap.get(userId) || []
+        const studentId = student.id // 使用Student表的ID
+        const userProgress = progressMap.get(studentId) || []
 
-        // 计算等级
+        // 根据课程进度计算等级
         let calculatedLevel = '未新训'
         if (userProgress.length > 0) {
           const levelInfo = this.calculateMemberLevel(userProgress)
           calculatedLevel = levelInfo.level
-
-          // 添加调试信息
-          const completedCourses = userProgress.filter(p => p.status === 'completed')
-          console.log(`用户 ${student.get('nickname')} (${userId}):`, {
-            总课程: userProgress.length,
-            已完成: completedCourses.length,
-            等级: calculatedLevel,
-            完成的课程类别: completedCourses.map(p => p.courseCategory)
-          })
         }
 
         // 构造email（优先使用Student表的qqNumber）
@@ -903,7 +852,7 @@ export class LeanCloudService {
         const email = student.get('email') || (qqNumber ? `${qqNumber}@qq.com` : '')
 
         return {
-          id: userId || student.id, // 如果没有userId，使用Student表的ID
+          id: student.id, // 使用Student表的ID作为用户ID
           username: student.get('username') || student.get('studentId'),
           email: email,
           nickname: student.get('nickname') || student.get('name'),
@@ -913,7 +862,7 @@ export class LeanCloudService {
           permissions: [],
           // 额外的学员信息
           studentId: student.get('studentId'),
-          level: calculatedLevel, // 使用计算出的等级
+          level: calculatedLevel, // 使用基于课程进度计算出的等级
           qqNumber: qqNumber // 添加QQ号字段
         }
       })
