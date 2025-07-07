@@ -681,6 +681,21 @@ export class LeanCloudService {
   static calculateMemberLevel(courseProgress: CourseProgress[]): MemberLevel {
     const completedCourses = courseProgress.filter(p => p.status === 'completed')
 
+    // 调试信息：显示所有课程状态和类别
+    console.log('等级计算调试信息:', {
+      总课程数: courseProgress.length,
+      已完成课程数: completedCourses.length,
+      所有课程状态: courseProgress.map(p => ({
+        课程: p.courseName,
+        类别: p.courseCategory,
+        状态: p.status
+      })),
+      已完成课程: completedCourses.map(p => ({
+        课程: p.courseName,
+        类别: p.courseCategory
+      }))
+    })
+
     // 按课程类别统计完成情况
     const completedByCategory = {
       '入门课程': completedCourses.filter(p => p.courseCategory === '入门课程').length,
@@ -689,6 +704,8 @@ export class LeanCloudService {
       '团队训练': completedCourses.filter(p => p.courseCategory === '团队训练').length,
       '进阶课程': completedCourses.filter(p => p.courseCategory === '进阶课程').length
     }
+
+    console.log('按类别统计完成情况:', completedByCategory)
 
     // 总课程数量
     const totalByCategory = {
@@ -828,6 +845,10 @@ export class LeanCloudService {
           progressQuery.containedIn('userId', userIds) // 直接使用User ID
           const progressList = await progressQuery.find()
 
+          console.log(`查询到 ${progressList.length} 条课程进度记录`)
+          console.log('用户ID列表:', userIds)
+          console.log('进度记录中的用户ID:', [...new Set(progressList.map(p => p.get('userId')))])
+
           // 按User ID分组进度记录
           progressList.forEach(progress => {
             const userId = progress.get('userId')
@@ -850,6 +871,8 @@ export class LeanCloudService {
               } as CourseProgress)
             }
           })
+
+          console.log('进度数据映射:', Object.fromEntries(progressMap))
         } catch (error) {
           console.warn('获取课程进度失败:', error)
         }
