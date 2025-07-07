@@ -1123,7 +1123,7 @@ export class LeanCloudService {
     }
   }
 
-  static async batchAssignCourses(userIds: string[], courseIds: string[]): Promise<void> {
+  static async batchAssignCourses(studentIds: string[], courseIds: string[]): Promise<void> {
     try {
       // 获取课程信息
       const courseQuery = new AV.Query('Course')
@@ -1132,18 +1132,17 @@ export class LeanCloudService {
 
       const progressObjects = []
 
-      for (const userId of userIds) {
-
+      for (const studentId of studentIds) {
         for (const course of courses) {
-          // 检查是否已经分配过
+          // 检查是否已经分配过（使用Student ID）
           const existingQuery = new AV.Query('CourseProgress')
-          existingQuery.equalTo('userId', userId) // 使用User ID而不是Student ID
+          existingQuery.equalTo('userId', studentId) // 现在CourseProgress表中的userId存储的是Student ID
           existingQuery.equalTo('courseId', course.id)
           const existing = await existingQuery.first()
 
           if (!existing) {
             const progress = new AV.Object('CourseProgress')
-            progress.set('userId', userId)
+            progress.set('userId', studentId) // 存储Student ID
             progress.set('courseId', course.id)
             progress.set('courseName', course.get('name'))
             progress.set('courseCategory', course.get('category'))
@@ -1195,15 +1194,15 @@ export class LeanCloudService {
   }
 
   // 批量获取多个用户的已分配课程
-  static async getBatchUserAssignedCourses(userIds: string[]): Promise<Map<string, string[]>> {
+  static async getBatchUserAssignedCourses(studentIds: string[]): Promise<Map<string, string[]>> {
     try {
       // 直接批量查询所有进度记录
       const progressQuery = new AV.Query('CourseProgress')
-      progressQuery.containedIn('userId', userIds) // 直接使用_User ID
+      progressQuery.containedIn('userId', studentIds) // 使用Student ID
       progressQuery.select(['userId', 'courseId'])
       const progressList = await progressQuery.find()
 
-      // 按User ID分组
+      // 按Student ID分组
       const userCourseMap = new Map()
       progressList.forEach(progress => {
         const userId = progress.get('userId')
@@ -1217,8 +1216,8 @@ export class LeanCloudService {
 
       // 确保所有用户都有记录（即使是空数组）
       const result = new Map()
-      userIds.forEach(userId => {
-        result.set(userId, userCourseMap.get(userId) || [])
+      studentIds.forEach(studentId => {
+        result.set(studentId, userCourseMap.get(studentId) || [])
       })
 
       return result
