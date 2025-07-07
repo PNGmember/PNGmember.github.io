@@ -815,6 +815,7 @@ export class LeanCloudService {
           // 使用Student ID查询CourseProgress
           const progressQuery = new AV.Query('CourseProgress')
           progressQuery.containedIn('userId', studentIds)
+          progressQuery.limit(1000) // 设置更高的查询限制，与getBatchUserAssignedCourses保持一致
           const progressList = await progressQuery.find()
 
           // 按Student ID分组进度记录
@@ -840,11 +841,15 @@ export class LeanCloudService {
         const studentId = student.id // 使用Student表的ID
         const userProgress = progressMap.get(studentId) || []
 
+
+
         // 根据课程进度计算等级
         let calculatedLevel = '未新训'
         if (userProgress.length > 0) {
           const levelInfo = this.calculateMemberLevel(userProgress)
           calculatedLevel = levelInfo.level
+
+
         }
 
         // 构造email（优先使用Student表的qqNumber）
@@ -877,6 +882,7 @@ export class LeanCloudService {
     try {
       const query = new AV.Query('CourseProgress')
       query.include('course')
+      query.limit(1000) // 设置更高的查询限制
       const results = await query.find()
 
       // 获取所有用户信息（使用与getAllUsers相同的逻辑）

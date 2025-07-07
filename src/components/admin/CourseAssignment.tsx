@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { LeanCloudService } from '../../services/leancloudService'
-import { 
-  UserPlus, 
-  Search, 
-  Filter, 
+import {
+  UserPlus,
+  Search,
+  Filter,
   Plus,
   BookOpen,
   Users,
@@ -11,7 +11,10 @@ import {
   Square,
   Save,
   X,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import type { User, Course } from '../../config/leancloud'
 
@@ -27,6 +30,8 @@ export default function CourseAssignment() {
   const [assigning, setAssigning] = useState(false)
   const [assignProgress, setAssignProgress] = useState(0)
   const [userAssignedCourses, setUserAssignedCourses] = useState<Map<string, string[]>>(new Map())
+  const [sortField, setSortField] = useState<string>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     loadData()
@@ -47,6 +52,8 @@ export default function CourseAssignment() {
       const studentIds = students.map(u => u.id)
       const assignedCoursesMap = await LeanCloudService.getBatchUserAssignedCourses(studentIds)
       setUserAssignedCourses(assignedCoursesMap)
+
+
     } catch (error) {
       setError('加载数据失败')
       console.error('Failed to load data:', error)
@@ -55,11 +62,71 @@ export default function CourseAssignment() {
     }
   }
 
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // 排序和过滤逻辑
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return null
+    return sortDirection === 'asc' ?
+      <ChevronUp className="w-4 h-4 ml-1" /> :
+      <ChevronDown className="w-4 h-4 ml-1" />
+  }
+
+  const sortedAndFilteredUsers = users
+    .filter(user =>
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortField) return 0
+
+      let aValue: any
+      let bValue: any
+
+      switch (sortField) {
+        case 'nickname':
+          aValue = a.nickname || a.username || ''
+          bValue = b.nickname || b.username || ''
+          break
+        case 'level':
+          aValue = a.level || ''
+          bValue = b.level || ''
+          break
+        case 'assignedCourses':
+          aValue = userAssignedCourses.get(a.id)?.length || 0
+          bValue = userAssignedCourses.get(b.id)?.length || 0
+          break
+        case 'joinDate':
+          aValue = new Date(a.joinDate).getTime()
+          bValue = new Date(b.joinDate).getTime()
+          break
+        case 'isActive':
+          aValue = a.isActive ? 1 : 0
+          bValue = b.isActive ? 1 : 0
+          break
+        default:
+          return 0
+      }
+
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase()
+        bValue = bValue.toLowerCase()
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+
+  const filteredUsers = sortedAndFilteredUsers
 
   const handleUserSelect = (userId: string) => {
     setSelectedUsers(prev => 
@@ -152,14 +219,24 @@ export default function CourseAssignment() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">课程分配</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">为学员分配课程和管理学习计划</p>
         </div>
-        <button
-          onClick={() => setShowAssignModal(true)}
-          className="btn-primary flex items-center"
-          disabled={selectedUsers.length === 0}
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          批量分配课程
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={loadData}
+            className="btn-secondary flex items-center"
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            刷新数据
+          </button>
+          <button
+            onClick={() => setShowAssignModal(true)}
+            className="btn-primary flex items-center"
+            disabled={selectedUsers.length === 0}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            批量分配课程
+          </button>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -218,19 +295,49 @@ export default function CourseAssignment() {
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  学员信息
+                  <button
+                    onClick={() => handleSort('nickname')}
+                    className="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    学员信息
+                    {getSortIcon('nickname')}
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  等级
+                  <button
+                    onClick={() => handleSort('level')}
+                    className="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    等级
+                    {getSortIcon('level')}
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  已分配课程
+                  <button
+                    onClick={() => handleSort('assignedCourses')}
+                    className="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    已分配课程
+                    {getSortIcon('assignedCourses')}
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  加入时间
+                  <button
+                    onClick={() => handleSort('joinDate')}
+                    className="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    加入时间
+                    {getSortIcon('joinDate')}
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  状态
+                  <button
+                    onClick={() => handleSort('isActive')}
+                    className="flex items-center hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    状态
+                    {getSortIcon('isActive')}
+                  </button>
                 </th>
               </tr>
             </thead>
