@@ -110,6 +110,7 @@ export default function CourseAssignment() {
 
     try {
       setAssigning(true)
+
       await LeanCloudService.batchAssignCourses(selectedUsers, selectedCourses)
 
       // 重新加载已分配课程数据

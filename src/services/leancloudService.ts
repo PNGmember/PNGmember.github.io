@@ -1136,13 +1136,13 @@ export class LeanCloudService {
         for (const course of courses) {
           // 检查是否已经分配过（使用Student ID）
           const existingQuery = new AV.Query('CourseProgress')
-          existingQuery.equalTo('userId', studentId) // 现在CourseProgress表中的userId存储的是Student ID
+          existingQuery.equalTo('userId', studentId)
           existingQuery.equalTo('courseId', course.id)
           const existing = await existingQuery.first()
 
           if (!existing) {
             const progress = new AV.Object('CourseProgress')
-            progress.set('userId', studentId) // 存储Student ID
+            progress.set('userId', studentId)
             progress.set('courseId', course.id)
             progress.set('courseName', course.get('name'))
             progress.set('courseCategory', course.get('category'))
@@ -1199,7 +1199,7 @@ export class LeanCloudService {
       // 直接批量查询所有进度记录
       const progressQuery = new AV.Query('CourseProgress')
       progressQuery.containedIn('userId', studentIds) // 使用Student ID
-      progressQuery.select(['userId', 'courseId'])
+      progressQuery.limit(1000) // 设置更高的查询限制
       const progressList = await progressQuery.find()
 
       // 按Student ID分组
