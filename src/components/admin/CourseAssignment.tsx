@@ -32,6 +32,13 @@ export default function CourseAssignment() {
   const [userAssignedCourses, setUserAssignedCourses] = useState<Map<string, string[]>>(new Map())
   const [sortField, setSortField] = useState<string>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{
+    success: number
+    failed: number
+    errors: string[]
+  } | null>(null)
+  const [showSyncModal, setShowSyncModal] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -203,6 +210,25 @@ export default function CourseAssignment() {
     }
   }
 
+  const handleSyncMemberProgress = async () => {
+    try {
+      setSyncing(true)
+      setError('')
+
+      const result = await LeanCloudService.syncMemberProgress()
+      setSyncResult(result)
+      setShowSyncModal(true)
+
+      // 重新加载数据
+      await loadData()
+
+    } catch (error: any) {
+      setError('同步管理系统进度失败: ' + (error.message || '未知错误'))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -227,6 +253,18 @@ export default function CourseAssignment() {
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             刷新数据
+          </button>
+          <button
+            onClick={handleSyncMemberProgress}
+            className="btn-secondary flex items-center"
+            disabled={syncing}
+          >
+            {syncing ? (
+              <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            {syncing ? '同步中...' : '同步管理系统进度'}
           </button>
           <button
             onClick={() => setShowAssignModal(true)}
@@ -527,6 +565,86 @@ export default function CourseAssignment() {
                     确认分配
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Result Modal */}
+      {showSyncModal && syncResult && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black dark:bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                同步管理系统进度结果
+              </h3>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* 统计信息 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {syncResult.success}
+                  </div>
+                  <div className="text-sm text-green-600 dark:text-green-400">
+                    成功同步
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {syncResult.failed}
+                  </div>
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    同步失败
+                  </div>
+                </div>
+              </div>
+
+              {/* 错误信息 */}
+              {syncResult.errors.length > 0 && (
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
+                    错误详情:
+                  </h4>
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {syncResult.errors.map((error, index) => (
+                      <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1">
+                        • {error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 说明信息 */}
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+                  同步规则说明:
+                </h4>
+                <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                  <div>• 新训初期: 完成课程 1.1-1.5</div>
+                  <div>• 新训1期: 完成所有入门课程</div>
+                  <div>• 新训2期: 完成所有入门课程 + 标准技能一阶课程</div>
+                  <div>• 新训3期: 完成所有入门课程 + 标准技能一阶课程 + 标准技能二阶课程</div>
+                  <div>• 新训准考: 完成所有入门课程 + 标准技能一阶课程 + 标准技能二阶课程 + 团队训练</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="btn-primary"
+              >
+                确定
               </button>
             </div>
           </div>

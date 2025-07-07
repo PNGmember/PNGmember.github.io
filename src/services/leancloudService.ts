@@ -1387,6 +1387,181 @@ export class LeanCloudService {
     }
   }
 
+  // 同步管理系统进度
+  static async syncMemberProgress(): Promise<{ success: number, failed: number, errors: string[] }> {
+    try {
+      console.log('🔄 开始同步管理系统进度...')
+
+      // 1. 获取所有Member记录
+      const memberQuery = new AV.Query('Member')
+      memberQuery.equalTo('guild', 'purplenight')
+      memberQuery.notEqualTo('stage', '紫夜')
+      memberQuery.equalTo('status', '正常')
+      const members = await memberQuery.find()
+
+      console.log(`找到 ${members.length} 个符合条件的Member记录`)
+
+      // 2. 获取所有Student记录
+      const studentQuery = new AV.Query('Student')
+      studentQuery.equalTo('guild', 'purplenight')
+      const students = await studentQuery.find()
+
+      console.log(`找到 ${students.length} 个Student记录`)
+
+      // 3. 获取所有课程
+      const courseQuery = new AV.Query('Course')
+      courseQuery.ascending('order')
+      const courses = await courseQuery.find()
+
+      console.log(`找到 ${courses.length} 门课程`)
+
+      let successCount = 0
+      let failedCount = 0
+      const errors: string[] = []
+
+      // 4. 遍历Member记录，匹配Student记录
+      for (const member of members) {
+        try {
+          const memberNickname = member.get('nickname')
+          const memberStage = member.get('stage')
+
+          if (!memberNickname || !memberStage) {
+            errors.push(`Member记录缺少必要信息: ${memberNickname || '未知'}`)
+            failedCount++
+            continue
+          }
+
+          // 查找匹配的Student记录
+          const matchingStudent = students.find(s => s.get('nickname') === memberNickname)
+
+          if (!matchingStudent) {
+            errors.push(`未找到匹配的Student记录: ${memberNickname}`)
+            failedCount++
+            continue
+          }
+
+          console.log(`处理学员: ${memberNickname}, 阶段: ${memberStage}`)
+
+          // 根据阶段确定需要完成的课程
+          const targetCourses = this.getCoursesForStage(memberStage, courses)
+
+          if (targetCourses.length === 0) {
+            errors.push(`未知的阶段: ${memberStage} (学员: ${memberNickname})`)
+            failedCount++
+            continue
+          }
+
+          // 同步该学员的课程进度
+          await this.syncStudentProgressForStage(matchingStudent.id, targetCourses)
+
+          successCount++
+          console.log(`✅ 成功同步学员: ${memberNickname}`)
+
+        } catch (error) {
+          const memberNickname = member.get('nickname') || '未知学员'
+          errors.push(`同步 ${memberNickname} 失败: ${error.message}`)
+          failedCount++
+          console.error(`同步 ${memberNickname} 失败:`, error)
+        }
+      }
+
+      console.log(`🎉 同步完成: 成功 ${successCount}, 失败 ${failedCount}`)
+
+      return {
+        success: successCount,
+        failed: failedCount,
+        errors: errors
+      }
+
+    } catch (error) {
+      console.error('同步管理系统进度失败:', error)
+      throw new Error('同步管理系统进度失败: ' + error.message)
+    }
+  }
+
+  // 根据阶段获取需要完成的课程
+  private static getCoursesForStage(stage: string, courses: any[]): any[] {
+    const stageMapping = {
+      '新训初期': { categories: ['入门课程'], maxOrder: 5 }, // 1.1-1.5
+      '新训1期': { categories: ['入门课程'], maxOrder: 999 }, // 所有1级课程
+      '新训2期': { categories: ['入门课程', '标准技能一阶课程'], maxOrder: 999 }, // 所有1、2级课程
+      '新训3期': { categories: ['入门课程', '标准技能一阶课程', '标准技能二阶课程'], maxOrder: 999 }, // 所有1、2、3级课程
+      '新训准考': { categories: ['入门课程', '标准技能一阶课程', '标准技能二阶课程', '团队训练'], maxOrder: 999 } // 所有1、2、3、4级课程
+    }
+
+    const config = stageMapping[stage]
+    if (!config) {
+      return []
+    }
+
+    return courses.filter(course => {
+      const category = course.get('category')
+      const order = course.get('order') || 0
+
+      // 检查类别是否匹配
+      if (!config.categories.includes(category)) {
+        return false
+      }
+
+      // 对于新训初期，只包含1.1-1.5的课程
+      if (stage === '新训初期' && category === '入门课程') {
+        return order >= 1 && order <= 5
+      }
+
+      return order <= config.maxOrder
+    })
+  }
+
+  // 为学员同步指定阶段的课程进度
+  private static async syncStudentProgressForStage(studentId: string, targetCourses: any[]): Promise<void> {
+    try {
+      // 1. 获取学员当前的课程进度
+      const progressQuery = new AV.Query('CourseProgress')
+      progressQuery.equalTo('userId', studentId)
+      const existingProgress = await progressQuery.find()
+
+      const existingCourseIds = existingProgress.map(p => p.get('courseId'))
+
+      // 2. 创建或更新课程进度记录
+      const progressObjects = []
+
+      for (const course of targetCourses) {
+        const courseId = course.id
+        const existingRecord = existingProgress.find(p => p.get('courseId') === courseId)
+
+        if (existingRecord) {
+          // 更新现有记录为完成状态
+          existingRecord.set('progress', 100)
+          existingRecord.set('status', 'completed')
+          existingRecord.set('lastStudyDate', new Date())
+          progressObjects.push(existingRecord)
+        } else {
+          // 创建新的进度记录
+          const progress = new AV.Object('CourseProgress')
+          progress.set('userId', studentId)
+          progress.set('courseId', courseId)
+          progress.set('courseName', course.get('name'))
+          progress.set('courseCategory', course.get('category'))
+          progress.set('courseOrder', course.get('order'))
+          progress.set('progress', 100)
+          progress.set('status', 'completed')
+          progress.set('lastStudyDate', new Date())
+          progressObjects.push(progress)
+        }
+      }
+
+      // 3. 批量保存
+      if (progressObjects.length > 0) {
+        await AV.Object.saveAll(progressObjects)
+        console.log(`为学员 ${studentId} 同步了 ${progressObjects.length} 门课程`)
+      }
+
+    } catch (error) {
+      console.error(`同步学员 ${studentId} 的课程进度失败:`, error)
+      throw error
+    }
+  }
+
   static async getStatistics(): Promise<{
     totalUsers: number
     activeUsers: number
