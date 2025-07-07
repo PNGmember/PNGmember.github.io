@@ -45,6 +45,8 @@ export default function ProgressManagement() {
   const [showBatchModal, setShowBatchModal] = useState(false)
   const [batchProgress, setBatchProgress] = useState(0)
   const [batchStatus, setBatchStatus] = useState<CourseProgress['status']>('in_progress')
+  const [batchUpdating, setBatchUpdating] = useState(false)
+  const [batchUpdateProgress, setBatchUpdateProgress] = useState(0)
 
   const categories = ['入门课程', '标准技能一阶课程', '标准技能二阶课程', '团队训练', '进阶课程']
 
@@ -178,7 +180,10 @@ export default function ProgressManagement() {
   // 批量更新进度（添加限流处理）
   const handleBatchUpdate = async () => {
     try {
+      setBatchUpdating(true)
+      setBatchUpdateProgress(0)
       setError('') // 清除之前的错误
+
       const updates = {
         progress: batchProgress,
         status: batchStatus,
@@ -188,6 +193,8 @@ export default function ProgressManagement() {
       // 分批处理，避免触发限流
       const batchSize = 3 // 每批处理3个请求
       const delay = 500 // 每批之间延迟500ms
+      const totalItems = selectedItems.length
+      let processedItems = 0
 
       for (let i = 0; i < selectedItems.length; i += batchSize) {
         const batch = selectedItems.slice(i, i + batchSize)
@@ -202,6 +209,10 @@ export default function ProgressManagement() {
           setProgressData(prev => prev.map(p =>
             batch.includes(p.id) ? { ...p, ...updates } : p
           ))
+
+          // 更新进度
+          processedItems += batch.length
+          setBatchUpdateProgress(Math.round((processedItems / totalItems) * 100))
 
           // 如果不是最后一批，等待一段时间
           if (i + batchSize < selectedItems.length) {
@@ -223,6 +234,9 @@ export default function ProgressManagement() {
     } catch (error) {
       console.error('批量更新失败:', error)
       setError(`批量更新失败: ${error.message || '未知错误'}`)
+    } finally {
+      setBatchUpdating(false)
+      setBatchUpdateProgress(0)
     }
   }
 
@@ -960,10 +974,20 @@ export default function ProgressManagement() {
               </button>
               <button
                 onClick={handleBatchUpdate}
-                className="btn-primary flex items-center"
+                disabled={batchUpdating}
+                className="btn-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed relative"
               >
-                <Save className="w-4 h-4 mr-2" />
-                批量更新 ({selectedItems.length} 项)
+                {batchUpdating ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    更新中... ({batchUpdateProgress}%)
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    批量更新 ({selectedItems.length} 项)
+                  </>
+                )}
               </button>
             </div>
           </div>

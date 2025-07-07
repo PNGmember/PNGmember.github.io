@@ -25,6 +25,7 @@ export default function CourseAssignment() {
   const [selectedCourses, setSelectedCourses] = useState<string[]>([])
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [assignProgress, setAssignProgress] = useState(0)
   const [userAssignedCourses, setUserAssignedCourses] = useState<Map<string, string[]>>(new Map())
 
   useEffect(() => {
@@ -110,8 +111,13 @@ export default function CourseAssignment() {
 
     try {
       setAssigning(true)
+      setAssignProgress(0)
 
-      await LeanCloudService.batchAssignCourses(selectedUsers, selectedCourses)
+      await LeanCloudService.batchAssignCourses(
+        selectedUsers,
+        selectedCourses,
+        (progress) => setAssignProgress(progress)
+      )
 
       // 重新加载已分配课程数据
       const assignedCoursesMap = await LeanCloudService.getBatchUserAssignedCourses(users.map(u => u.id))
@@ -126,6 +132,7 @@ export default function CourseAssignment() {
       setError('分配课程失败: ' + error.message)
     } finally {
       setAssigning(false)
+      setAssignProgress(0)
     }
   }
 
@@ -399,15 +406,20 @@ export default function CourseAssignment() {
               </button>
               <button
                 onClick={handleAssignCourses}
-                className="btn-primary flex items-center"
+                className="btn-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={assigning || selectedCourses.length === 0}
               >
                 {assigning ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    分配中... ({assignProgress}%)
+                  </>
                 ) : (
-                  <Save className="w-4 h-4 mr-2" />
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    确认分配
+                  </>
                 )}
-                {assigning ? '分配中...' : '确认分配'}
               </button>
             </div>
           </div>

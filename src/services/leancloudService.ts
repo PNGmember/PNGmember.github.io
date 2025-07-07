@@ -1123,7 +1123,11 @@ export class LeanCloudService {
     }
   }
 
-  static async batchAssignCourses(studentIds: string[], courseIds: string[]): Promise<void> {
+  static async batchAssignCourses(
+    studentIds: string[],
+    courseIds: string[],
+    onProgress?: (progress: number) => void
+  ): Promise<void> {
     try {
       // 获取课程信息
       const courseQuery = new AV.Query('Course')
@@ -1131,6 +1135,11 @@ export class LeanCloudService {
       const courses = await courseQuery.find()
 
       const progressObjects = []
+      const totalOperations = studentIds.length * courses.length
+      let completedOperations = 0
+
+      // 初始化进度
+      onProgress?.(0)
 
       for (const studentId of studentIds) {
         for (const course of courses) {
@@ -1153,12 +1162,20 @@ export class LeanCloudService {
 
             progressObjects.push(progress)
           }
+
+          // 更新进度
+          completedOperations++
+          const progressPercent = Math.round((completedOperations / totalOperations) * 80) // 80% 用于检查，20% 用于保存
+          onProgress?.(progressPercent)
         }
       }
 
       if (progressObjects.length > 0) {
         await AV.Object.saveAll(progressObjects)
       }
+
+      // 完成
+      onProgress?.(100)
     } catch (error) {
       console.error('批量分配课程失败:', error)
       throw new Error(error.message || '批量分配课程失败')
